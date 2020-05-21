@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
 # Default config vars
 CURL="$(which curl)"
@@ -6,12 +6,6 @@ PUSHOVER_URL="https://api.pushover.net/1/messages.json"
 TOKEN="" # May be set in pushover.conf or given on command line
 USER="" # May be set in pushover.conf or given on command line
 CURL_OPTS=""
-BASH_MAJOR="$(echo $BASH_VERSION | cut -d'.' -f1)"
-if [ "${BASH_MAJOR}" -lt 4 ]; then
-    device_aliases=""
-else
-    declare -A device_aliases=()
-fi
 
 # Functions used elsewhere in this script
 usage() {
@@ -36,7 +30,7 @@ opt_field() {
     field=$1
     shift
     value="${*}"
-    if [ ! -z "${value}" ]; then
+    if [ -n "${value}" ]; then
         echo "-F \"${field}=${value}\""
     fi
 }
@@ -47,36 +41,15 @@ validate_token() {
 	ret=1
 	if [ -z "${value}" ]; then
 		echo "${field} is unset or empty: Did you create ${CONFIG_FILE} or specify ${opt} on the command line?" >&2
-	elif ! echo "${value}" | egrep -q '[A-Za-z0-9]{30}'; then
+	elif ! echo "${value}" | grep -E -q '[A-Za-z0-9]{30}'; then
 		echo "Value of ${field}, \"${value}\", does not match expected format. Should be 30 characters of A-Z, a-z and 0-9." >&2;
 	else
 		ret=0
 	fi
 	return ${ret}
 }
-expand_aliases() {
-    if [ "${BASH_MAJOR}" -lt 4 ]; then
-        if [ ! -z "${device_aliases}" ]; then
-            echo "Warning: device_aliases are only support by bash 4+" >&2
-        fi
-        echo "${*}"
-    else
-        for device in ${*}; do
-            expanded="${device_aliases["${device}"]}"
-            if [ -z "${expanded}" ]; then
-                echo "${device}"
-            else
-                echo "${expanded}"
-            fi
-        done
-    fi
-}
-remove_duplicates() {
-    echo ${*} | xargs -n1 | sort -u | uniq
-}
-send_message() {
-    local device="${1:-}"
 
+send_message() {
     curl_cmd="\"${CURL}\" -s -S \
         ${CURL_OPTS} \
         -F \"token=${TOKEN}\" \
@@ -95,7 +68,7 @@ send_message() {
         \"${PUSHOVER_URL}\""
 
     # execute and return exit code from curl command
-    response="$(eval "${curl_cmd}")"
+    eval "${curl_cmd}"
     # TODO: Parse response for value of status to give better error to user
     r="${?}"
     if [ "${r}" -ne 0 ]; then
@@ -105,34 +78,16 @@ send_message() {
     return "${r}"
 }
 
-# Initialize devices
-devices="${devices} ${device}"
-
 # Option parsing
 # We allow options to override the config file, so we process and load it first
 optstring="c:d:D:e:f:p:r:t:T:s:u:U:a:m:h"
-while getopts ${optstring} c; do
-    case ${c} in
-        f) PUSHOVER_CONFIG="${OPTARG}" ;;
-    esac
-done
-
-# Load user config
-if [ ! -z "${PUSHOVER_CONFIG}" ]; then
-    CONFIG_FILE="${PUSHOVER_CONFIG}"
-else
-    CONFIG_FILE="${XDG_CONFIG_HOME-${HOME}/.config}/pushover.conf"
-fi
-if [ -e "${CONFIG_FILE}" ]; then
-    . "${CONFIG_FILE}"
-fi
 
 # Process the remaining options
 OPTIND=1
 while getopts ${optstring} c; do
     case ${c} in
         c) callback="${OPTARG}" ;;
-        d) devices="${devices} ${OPTARG}" ;;
+        d) device="${device} ${OPTARG}" ;;
         D) timestamp="${OPTARG}" ;;
         e) expire="${OPTARG}" ;;
         p) priority="${OPTARG}" ;;
@@ -151,7 +106,7 @@ done
 shift $((OPTIND-1))
 
 # Is there anything left?
-if [ "$#" -lt 1 -a "$msg_file" = "" ]; then
+if [ "$#" -lt 1 ] && [ "$msg_file" = "" ]; then
     usage
 fi
 message="$*"
@@ -162,7 +117,7 @@ if [ "$msg_file" != "" ] ; then
 	echo "failed to read message file: $msg_file"
 	exit 1
     fi
-    message="$message `cat $msg_file`"
+    message="$message $(cat "$msg_file")"
 fi	
 
 # Check for required config variables
@@ -173,19 +128,6 @@ fi
 validate_token "TOKEN" "${TOKEN}" "-T" || exit $?
 validate_token "USER" "${USER}" "-U" || exit $?
 
-devices="$(expand_aliases ${devices})"
-devices="$(remove_duplicates ${devices})"
-
-if [ -z "${devices}" ]; then
-    send_message
-    r=${?}
-else
-    for device in ${devices}; do
-        send_message "${device}"
-        r=${?}
-        if [ "${r}" -ne 0 ]; then
-            break;
-        fi
-    done
-fi
+send_message
+r=${?}
 exit "${r}"
