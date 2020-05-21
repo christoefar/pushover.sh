@@ -36,5 +36,7 @@ To use this script, you must have TOKEN and USER (or GROUP) keys from [PushOver]
 
 The message can be passed as arguments on the command line, or by using the -m switch to load the message from a file. 
 
+Additional thanks for https://www.shellcheck.net/ for helping me parse the original script by https://github.com/jnwatts
+
 [1]: http://www.pushover.net
 [2]: https://github.com/jnwatts/pushover.sh/issues
