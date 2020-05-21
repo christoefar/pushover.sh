@@ -70,6 +70,8 @@ send_message() {
     # execute and return exit code from curl command
     eval "${curl_cmd}"
     
+    r="${?}"
+    
     if [ "${r}" -ne 0 ]; then
         echo "${0}: Failed to send message" >&2
     fi
