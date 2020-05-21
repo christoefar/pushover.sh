@@ -5,7 +5,7 @@ CURL="$(which curl)"
 PUSHOVER_URL="https://api.pushover.net/1/messages.json"
 TOKEN="" # May be set in pushover.conf or given on command line
 USER="" # May be set in pushover.conf or given on command line
-CURL_OPTS=""
+CURL_OPTS="--silent"
 
 # Functions used elsewhere in this script
 usage() {
@@ -69,13 +69,12 @@ send_message() {
 
     # execute and return exit code from curl command
     eval "${curl_cmd}"
-    # TODO: Parse response for value of status to give better error to user
-    r="${?}"
+    
     if [ "${r}" -ne 0 ]; then
         echo "${0}: Failed to send message" >&2
     fi
 
-    return "${r}"
+    return
 }
 
 # Option parsing
@@ -129,5 +128,5 @@ validate_token "TOKEN" "${TOKEN}" "-T" || exit $?
 validate_token "USER" "${USER}" "-U" || exit $?
 
 send_message
-r=${?}
-exit "${r}"
+
+exit
