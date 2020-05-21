@@ -78,7 +78,6 @@ send_message() {
 }
 
 # Option parsing
-# We allow options to override the config file, so we process and load it first
 optstring="c:d:D:e:f:p:r:t:T:s:u:U:a:m:h"
 
 # Process the remaining options
