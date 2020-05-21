@@ -23,7 +23,6 @@ Usage
      -d <device>
      -D <timestamp>
      -e <expire>
-     -f <config file>
      -p <priority>
      -r <retry>
      -t <title>
