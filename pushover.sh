@@ -5,7 +5,7 @@ CURL="$(which curl)"
 PUSHOVER_URL="https://api.pushover.net/1/messages.json"
 TOKEN="" # May be set in pushover.conf or given on command line
 USER="" # May be set in pushover.conf or given on command line
-CURL_OPTS="--silent"
+CURL_OPTS="--silent --output /dev/null"
 
 # Functions used elsewhere in this script
 usage() {
